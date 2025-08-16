@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Install root npm deps",
+			"type": "shell",
+			"command": "npm install",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Install updated deps",
+			"type": "shell",
+			"command": "npm install",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Install new deps (geo/prefs)",
+			"type": "shell",
+			"command": "npm install",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Gradle build debug",
+			"type": "shell",
+			"command": "./android/gradlew.bat -p android :app:assembleDebug -PCAP_SERVER_URL=\"http://10.0.2.2:8302\"",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

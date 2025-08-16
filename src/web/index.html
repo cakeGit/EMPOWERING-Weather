@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Empowering Weather</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <h1 class="logo">Empowering Weather</h1>
+
+        <main class="container">
+            <header>
+                <!-- Large quip displayed prominently at the top -->
+                <h2 id="quip" class="quip large">Loading weather</h2>
+                <!-- small, semi-transparent logo/title in the top-right -->
+            </header>
+
+            <section id="result" class="result hidden">
+                <!-- quip moved to header; keep space for meta and cards -->
+                <div class="meta">
+                    <div>
+                        <div class="card">
+                            <div class="current">
+                                <div class="temp">
+                                    <span id="tempC" class="temp-value"></span>
+                                    <span class="unit">°C</span>
+                                </div>
+                                <div class="cond">
+                                    <img id="condIcon" src="" alt="" />
+                                    <div id="condText"></div>
+                                </div>
+                            </div>
+
+                            <div class="details">
+                                <div>
+                                    Feels like: <span id="feels"></span>°C
+                                </div>
+                                <div>
+                                    Humidity: <span id="humidity"></span>%
+                                    <span
+                                        id="humidityRank"
+                                        class="rank"
+                                        aria-hidden="true"
+                                    ></span>
+                                </div>
+                                <div>
+                                    Wind: <span id="wind"></span> kph
+                                    <span
+                                        id="windRank"
+                                        class="rank"
+                                        aria-hidden="true"
+                                    ></span>
+                                </div>
+                                <div>Rain: <span id="rainChance">—</span></div>
+                                <div class="uv">
+                                    <div>
+                                        UV:
+                                        <span
+                                            id="uvValue"
+                                            class="rank uv-value"
+                                        ></span>
+                                    </div>
+                                    <div
+                                        class="uv-track"
+                                        role="img"
+                                        aria-label="UV index"
+                                    >
+                                        <div id="uvFill" class="uv-fill"></div>
+                                    </div>
+                                    <div>
+                                        <strong id="uvLabel" class="uv-label"
+                                            >—</strong
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- stat cards removed -->
+                        <div
+                            id="forecastRow"
+                            class="forecast-row hidden"
+                            aria-live="polite"
+                        ></div>
+                        <!-- Chart cards row: separate cards for each metric -->
+                        <div id="statsCardsRow" class="stats-cards-row hidden">
+                            <!-- Cards are populated dynamically by JS -->
+                        </div>
+                        <span
+                            id="cacheAge"
+                            class="legacy hidden"
+                            aria-hidden="true"
+                        ></span>
+                    </div>
+                    <div class="location-bottom">
+                        <strong>Location:</strong> <span id="locName"></span>
+                        <strong>Cache age:</strong>
+                        <span id="cacheAgeText"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="controls">
+                <!-- location helper removed -->
+                <div id="status" class="status">
+                    Locating your device and fetching weather...
+                </div>
+                <div class="inputs">
+                    <button
+                        id="retryLoc"
+                        class="retry hidden"
+                        aria-live="polite"
+                    >
+                        Retry location
+                    </button>
+                </div>
+            </section>
+        </main>
+        <!-- Debug button: opens modal with raw API response -->
+        <button
+            id="debugBtn"
+            class="debug-btn"
+            title="Show raw API response"
+            aria-haspopup="dialog"
+            aria-controls="debugModal"
+        >
+            <img src="bug.svg" alt="Debug" width="20" height="20" />
+        </button>
+        <div id="debugModal" class="debug-modal hidden" aria-hidden="true">
+            <div class="debug-content">
+                <button id="closeDebug" class="close" aria-label="Close">
+                    &times;
+                </button>
+                <h3>Raw API response</h3>
+                <pre id="raw" class="raw-pre"></pre>
+            </div>
+        </div>
+
+        <!-- Capacitor bridge (available in native builds) -->
+        <script src="capacitor.js"></script>
+        <!-- Modular scripts: app.js is now an ES module that imports submodules -->
+        <script type="module" src="app.js"></script>
+    </body>
+</html>
