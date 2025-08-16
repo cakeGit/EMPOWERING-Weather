@@ -57,22 +57,75 @@ function seededRandom(seed) {
     };
 }
 
-function pickQuip(lat, lon) {
+function pickQuip(weather, lat, lon) {
+    // Determine a best-fit category from the weather response
+    function determineCategory(data) {
+        if (!data || !data.current) return null;
+        const cur = data.current;
+        const text = (
+            (cur.condition && cur.condition.text) ||
+            ""
+        ).toLowerCase();
+        const temp = typeof cur.temp_c === "number" ? cur.temp_c : null;
+        const humidity = typeof cur.humidity === "number" ? cur.humidity : null;
+        const wind = typeof cur.wind_kph === "number" ? cur.wind_kph : 0;
+        const precip = typeof cur.precip_mm === "number" ? cur.precip_mm : 0;
+        const cloud = typeof cur.cloud === "number" ? cur.cloud : 0;
+
+        // Priority-ordered checks
+        if (/thunder/.test(text)) return "thunderstorm";
+        if (/storm|squall/.test(text)) return "stormy";
+        if (/snow|sleet|blizzard|ice/.test(text)) return "snowy";
+        if (/rain|drizzle|shower/.test(text) || precip > 0.5) return "rainy";
+        if (/fog|mist|haze|smoke/.test(text)) return "foggy";
+        if (wind >= 40) return "windy";
+        if (temp !== null && temp >= 30) return "hot";
+        if (temp !== null && temp <= 0) return "cold";
+        if (humidity !== null && humidity >= 85 && temp !== null && temp >= 20)
+            return "humid";
+        if (cloud >= 70 || /cloud|overcast/.test(text)) return "cloudy";
+        if (temp !== null && temp >= 10 && temp <= 25) return "mild";
+        if (temp !== null && temp <= 5) return "cold";
+
+        return null;
+    }
+
+    const category = determineCategory(weather);
+    const available = CATEGORIES.filter((c) => (notes[c] || []).length > 0);
+
+    // If determineCategory returns a category we have notes for, use it.
+    let chosenCategory = null;
+    if (category && available.includes(category)) {
+        chosenCategory = category;
+    } else if (available.length > 0) {
+        // Fallback: pick a deterministic category based on date + rounded coords
+        const now = new Date();
+        const daySeed = Number(
+            `${now.getFullYear()}${now.getMonth() + 1}${now.getDate()}`
+        );
+        const coordSeed =
+            Math.round((lat || 0) * 100) + Math.round((lon || 0) * 100);
+        const seed = daySeed + coordSeed;
+        const rnd = seededRandom(seed)();
+        chosenCategory = available[Math.floor(rnd * available.length)];
+    }
+
+    if (!chosenCategory) return "";
+
+    // Pick a deterministic quip from the chosen category using the same seed
     const now = new Date();
-    const daySeed = Number(
+    const daySeed2 = Number(
         `${now.getFullYear()}${now.getMonth() + 1}${now.getDate()}`
     );
-    const latSeed = Math.round(lat || 0);
-    const lonSeed = Math.round(lon || 0);
-    const seed = daySeed + latSeed * 101 + lonSeed * 1009;
-    const rnd = seededRandom(seed)();
-    const available = CATEGORIES.filter((c) => (notes[c] || []).length > 0);
-    if (available.length === 0) return "";
-    const idx = Math.floor(rnd * available.length);
-    const list = notes[available[idx]];
-    const innerSeed = Math.floor(rnd * 100000);
-    const innerRnd = seededRandom(innerSeed)();
-    return list[Math.floor(innerRnd * list.length)];
+    const seed2 =
+        daySeed2 +
+        Math.round((lat || 0) * 100) +
+        Math.round((lon || 0) * 100) +
+        chosenCategory.length;
+    const rnd2 = seededRandom(seed2)();
+    const list = notes[chosenCategory] || [];
+    if (list.length === 0) return "";
+    return list[Math.floor(rnd2 * list.length)];
 }
 
 // Health endpoint
@@ -98,7 +151,7 @@ app.get("/api", async (req, res) => {
         const age = nowSec - entry.ts;
         if (age < CACHE_TTL_SECONDS) {
             const weather = entry.data;
-            const quip = pickQuip(latNum, lonNum);
+            const quip = pickQuip(weather, latNum, lonNum);
             return res.json({ cache_age: age, weather_quip: quip, weather });
         }
     }
@@ -116,7 +169,7 @@ app.get("/api", async (req, res) => {
         const resp = await axios.get(url, { timeout: 5000 });
         const data = resp.data;
         cache.set(key, { ts: nowSec, data });
-        const quip = pickQuip(latNum, lonNum);
+        const quip = pickQuip(data, latNum, lonNum);
         return res.json({ cache_age: 0, weather_quip: quip, weather: data });
     } catch (err) {
         console.error("weather fetch error", err && err.toString());
