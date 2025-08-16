@@ -152,7 +152,7 @@ Response format
                             "dni": 0,
                             "gti": 0
                         }
-                        //...Repeated x24
+                        //...Repeated hourly entries; server requests 2 days to ensure >=24h ahead
                     ]
                 }
             ]
