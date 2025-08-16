@@ -55,7 +55,10 @@ import { installDebugModalHandlers } from "./debugModal.js";
                 const err = await res
                     .json()
                     .catch(() => ({ error: res.statusText }));
-                setStatus("Error: " + (err.error || res.statusText));
+                setStatus(
+                    "Error fetching weather info: " +
+                        (err.error || res.statusText)
+                );
                 result.classList.add("hidden");
                 return;
             }
@@ -76,8 +79,12 @@ import { installDebugModalHandlers } from "./debugModal.js";
                 dom: domSnapshot(),
             });
             setStatus(
-                "Network error: " + (e && e.message ? e.message : String(e))
+                "Network error, couldn't fetch weather info: " +
+                    (e && e.message ? e.message : String(e))
             );
+            //Set debug data to the response
+            const rawEl = document.getElementById("raw");
+            if (rawEl) rawEl.textContent = JSON.stringify(res, null, 2);
             try {
                 result && result.classList.add("hidden");
             } catch (err) {

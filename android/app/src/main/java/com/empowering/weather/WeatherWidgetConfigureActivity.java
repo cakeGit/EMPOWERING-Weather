@@ -38,6 +38,7 @@ public class WeatherWidgetConfigureActivity extends Activity {
             inputLon.setText(String.valueOf(existingLon));
         }
 
+        int appWidgetIdFinal = appWidgetId;
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -53,10 +54,10 @@ public class WeatherWidgetConfigureActivity extends Activity {
                 // Trigger an immediate update
                 AppWidgetManager mgr = AppWidgetManager.getInstance(WeatherWidgetConfigureActivity.this);
                 WeatherWidgetProvider provider = new WeatherWidgetProvider();
-                provider.onUpdate(WeatherWidgetConfigureActivity.this, mgr, new int[]{ appWidgetId });
+                provider.onUpdate(WeatherWidgetConfigureActivity.this, mgr, new int[]{ appWidgetIdFinal });
 
                 Intent resultValue = new Intent();
-                resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+                resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetIdFinal);
                 setResult(RESULT_OK, resultValue);
                 finish();
             }

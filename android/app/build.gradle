@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-
+android.buildFeatures.buildConfig true
 android {
     namespace "com.empowering.weather"
     compileSdk rootProject.ext.compileSdkVersion
