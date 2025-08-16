@@ -184,9 +184,11 @@ app.get("/api", async (req, res) => {
             .json({ error: "WEATHERAPI_KEY not set in environment" });
 
     try {
+        // Fetch 2 days to guarantee at least 24 hours of hourly forecast from "now"
+        // (if it's late in the day, a single-day forecast might not include a full next 24h)
         const url = `https://api.weatherapi.com/v1/forecast.json?key=${encodeURIComponent(
             apiKey
-        )}&q=${latNum},${lonNum}&days=1&aqi=no&alerts=no`;
+        )}&q=${latNum},${lonNum}&days=2&aqi=no&alerts=no`;
         const resp = await axios.get(url, { timeout: 5000 });
         const data = resp.data;
         cache.set(key, { ts: nowSec, data });

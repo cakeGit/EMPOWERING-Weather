@@ -316,36 +316,74 @@ import { installDebugModalHandlers } from "./debugModal.js";
         }
     }
 
-    function startWithGeolocation() {
+    async function startWithGeolocation() {
+        setStatus("Locating...");
+        const hasCap = !!(
+            window.Capacitor &&
+            window.Capacitor.Plugins &&
+            (window.Capacitor.Plugins.Geolocation ||
+                window.Capacitor.isNativePlatform?.())
+        );
+
+        const persistLatLon = async (lat, lon) => {
+            // Best-effort: Capacitor Preferences when available, else localStorage
+            try {
+                if (
+                    window.Capacitor &&
+                    window.Capacitor.Plugins &&
+                    window.Capacitor.Plugins.Preferences
+                ) {
+                    const { Preferences } = window.Capacitor.Plugins;
+                    await Preferences.set({ key: "lat", value: String(lat) });
+                    await Preferences.set({ key: "lon", value: String(lon) });
+                } else if (window.localStorage) {
+                    localStorage.setItem("lat", String(lat));
+                    localStorage.setItem("lon", String(lon));
+                }
+            } catch (e) {
+                console.warn("Failed to persist lat/lon", e);
+            }
+        };
+
+        try {
+            if (hasCap && window.Capacitor.Plugins.Geolocation) {
+                const { Geolocation } = window.Capacitor.Plugins;
+                try {
+                    // Request permissions on native if needed
+                    if (Geolocation.requestPermissions) {
+                        await Geolocation.requestPermissions();
+                    }
+                } catch (_) {}
+                const pos = await Geolocation.getCurrentPosition({
+                    enableHighAccuracy: false,
+                    timeout: 10000,
+                });
+                const { latitude, longitude } = pos.coords || pos || {};
+                if (latitude != null && longitude != null) {
+                    retryBtn && retryBtn.classList.add("hidden");
+                    await persistLatLon(latitude, longitude);
+                    fetchWeather(latitude, longitude);
+                    return;
+                }
+                throw new Error("No coordinates from Capacitor Geolocation");
+            }
+        } catch (err) {
+            console.warn(
+                "Capacitor Geolocation failed, falling back to browser geolocation",
+                err
+            );
+        }
+
         if (!navigator.geolocation) {
-            setStatus("Geolocation not supported by your browser.");
+            setStatus("Geolocation not supported by your device.");
             return;
         }
-        setStatus("Locating...");
+
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
+            async (pos) => {
                 const { latitude, longitude } = pos.coords;
                 retryBtn && retryBtn.classList.add("hidden");
-                // Persist into Capacitor Preferences for native widget
-                try {
-                    if (
-                        window.Capacitor &&
-                        window.Capacitor.Plugins &&
-                        window.Capacitor.Plugins.Preferences
-                    ) {
-                        const { Preferences } = window.Capacitor.Plugins;
-                        Preferences.set({
-                            key: "lat",
-                            value: String(latitude),
-                        });
-                        Preferences.set({
-                            key: "lon",
-                            value: String(longitude),
-                        });
-                    }
-                } catch (e) {
-                    console.warn("Failed to store lat/lon in Preferences", e);
-                }
+                await persistLatLon(latitude, longitude);
                 fetchWeather(latitude, longitude);
             },
             (err) => {
@@ -357,6 +395,80 @@ import { installDebugModalHandlers } from "./debugModal.js";
     }
 
     startWithGeolocation();
+
+    // Periodic background location update (every THIRTY_SECONDS, best-effort)
+    let _periodicLocTimer = null;
+    function schedulePeriodicLocationUpdates() {
+        if (_periodicLocTimer) clearInterval(_periodicLocTimer);
+        const THIRTY_SECONDS = 30 * 1000;
+        _periodicLocTimer = setInterval(async () => {
+            try {
+                const hasCap = !!(
+                    window.Capacitor &&
+                    window.Capacitor.Plugins &&
+                    (window.Capacitor.Plugins.Geolocation ||
+                        window.Capacitor.isNativePlatform?.())
+                );
+                let lat = null,
+                    lon = null;
+                if (hasCap && window.Capacitor.Plugins.Geolocation) {
+                    const { Geolocation } = window.Capacitor.Plugins;
+                    try {
+                        if (Geolocation.requestPermissions)
+                            await Geolocation.requestPermissions();
+                    } catch (_) {}
+                    const pos = await Geolocation.getCurrentPosition({
+                        enableHighAccuracy: false,
+                        timeout: 10000,
+                    });
+                    const c = pos && (pos.coords || pos);
+                    if (c && c.latitude != null && c.longitude != null) {
+                        lat = c.latitude;
+                        lon = c.longitude;
+                    }
+                } else if (navigator.geolocation) {
+                    const pos = await new Promise((res, rej) =>
+                        navigator.geolocation.getCurrentPosition(res, rej, {
+                            enableHighAccuracy: false,
+                            timeout: 10000,
+                        })
+                    );
+                    if (pos && pos.coords) {
+                        lat = pos.coords.latitude;
+                        lon = pos.coords.longitude;
+                    }
+                }
+                if (lat != null && lon != null) {
+                    try {
+                        if (
+                            window.Capacitor &&
+                            window.Capacitor.Plugins &&
+                            window.Capacitor.Plugins.Preferences
+                        ) {
+                            const { Preferences } = window.Capacitor.Plugins;
+                            await Preferences.set({
+                                key: "lat",
+                                value: String(lat),
+                            });
+                            await Preferences.set({
+                                key: "lon",
+                                value: String(lon),
+                            });
+                        } else if (window.localStorage) {
+                            localStorage.setItem("lat", String(lat));
+                            localStorage.setItem("lon", String(lon));
+                        }
+                    } catch (e) {}
+                    try {
+                        fetchWeather(lat, lon);
+                    } catch (e) {}
+                }
+            } catch (_) {
+                /* ignore */
+            }
+        }, ONE_HOUR);
+    }
+    schedulePeriodicLocationUpdates();
 
     if (retryBtn) {
         retryBtn.addEventListener("click", () => {

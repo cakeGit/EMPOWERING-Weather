@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="12dp"
-    android:background="@android:color/transparent">
+    android:background="@drawable/widget_bg">
 
     <TextView
         android:id="@+id/txtQuip"
@@ -13,7 +13,8 @@
         android:layout_height="wrap_content"
         android:text="Empowering Weather"
         android:textStyle="bold"
-        android:textSize="14sp"
+    android:textSize="14sp"
+    android:textColor="#222222"
         android:maxLines="3"
         android:ellipsize="end" />
 
@@ -22,7 +23,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="--°C"
-        android:textSize="24sp"
+    android:textSize="24sp"
+    android:textColor="#111111"
         android:textStyle="bold"
         android:layout_marginTop="6dp" />
 
@@ -30,8 +32,9 @@
         android:id="@+id/txtLocation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Location: --"
-        android:textSize="12sp"
+    android:text="Prec: -- | Hum: -- | UV: --"
+    android:textSize="12sp"
+    android:textColor="#444444"
         android:layout_marginTop="2dp"
         android:maxLines="1"
         android:ellipsize="end" />
@@ -41,7 +44,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Tap to refresh"
-        android:textSize="11sp"
+    android:textSize="11sp"
+    android:textColor="#555555"
         android:layout_marginTop="8dp" />
 
 </LinearLayout>
