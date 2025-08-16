@@ -466,7 +466,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
             } catch (_) {
                 /* ignore */
             }
-        }, ONE_HOUR);
+        }, THIRTY_SECONDS);
     }
     schedulePeriodicLocationUpdates();
 

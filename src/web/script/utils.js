@@ -150,16 +150,6 @@ export function ensureChartJsLoaded(cb) {
 
 // Global error handlers hook using domSnapshot
 export function installGlobalErrorHandlers() {
-    window.addEventListener("error", (ev) => {
-        console.error("window.error captured", {
-            message: ev.message,
-            filename: ev.filename,
-            lineno: ev.lineno,
-            colno: ev.colno,
-            error: ev.error,
-            dom: domSnapshot(),
-        });
-    });
     window.addEventListener("unhandledrejection", (ev) => {
         console.error("unhandledrejection captured", {
             reason: ev.reason,

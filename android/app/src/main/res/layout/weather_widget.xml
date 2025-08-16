@@ -11,7 +11,7 @@
         android:id="@+id/txtQuip"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Empowering Weather"
+        android:text="OverCast"
         android:textStyle="bold"
     android:textSize="14sp"
     android:textColor="#222222"

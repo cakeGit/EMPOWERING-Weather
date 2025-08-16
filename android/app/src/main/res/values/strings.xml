@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">EMPOWERING Weather</string>
-    <string name="title_activity_main">EMPOWERING Weather</string>
+    <string name="app_name">OverCast</string>
+    <string name="title_activity_main">OverCast</string>
     <string name="package_name">com.empowering.weather</string>
     <string name="custom_url_scheme">com.empowering.weather</string>
 </resources>
