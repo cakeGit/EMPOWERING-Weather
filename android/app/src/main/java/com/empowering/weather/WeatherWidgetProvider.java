@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.location.Location;
 import android.location.LocationManager;
@@ -88,6 +89,7 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                 }
                 if (!hasLocation) {
                     WidgetData data = new WidgetData("Empowering Weather", "--°C", "Prec: -- | Hum: -- | UV: --", "Open app to grant location");
+                    // Open the native location activity which will request permission and obtain a location
                     updateAppWidgetOpenApp(context, appWidgetManager, appWidgetId, data);
                     return;
                 }
@@ -142,7 +144,8 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.txtLocation, data.location);
             views.setTextViewText(R.id.txtStatus, data.status);
         }
-        Intent openIntent = new Intent(context, MainActivity.class);
+    // Launch a small native activity that requests location permission and fetches a location
+    Intent openIntent = new Intent(context, NativeLocationActivity.class);
         openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(
                 context,
@@ -206,6 +209,19 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
 
     private static double[] tryGetLastKnownLocation(Context context) {
         try {
+            // Check shared preferences for a recently saved native location first
+            SharedPreferences prefs = context.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
+            long ts = prefs.getLong("widget_loc_time", 0);
+            long now = System.currentTimeMillis();
+            // consider a saved location valid for 15 minutes
+            if (ts > 0 && (now - ts) < 15L * 60L * 1000L) {
+                float lat = prefs.getFloat("widget_lat", 0f);
+                float lon = prefs.getFloat("widget_lon", 0f);
+                if (!(lat == 0f && lon == 0f)) {
+                    return new double[]{ lat, lon };
+                }
+            }
+
             if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 return null; // No permission granted yet

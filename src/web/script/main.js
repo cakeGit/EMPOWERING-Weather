@@ -44,7 +44,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
     }
 
     async function fetchWeather(lat, lon) {
-        setStatus("Fetching...");
+        setStatus("Fetching…");
         try {
             const res = await fetch(
                 `https://weather.oreostack.uk/api?lat=${encodeURIComponent(
@@ -211,7 +211,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
                 const hours = [];
                 if (Array.isArray(days)) {
                     days.forEach((d) => {
-                        if (Array.isArray(d.hour)) hours.push(...d.hour);
+                        if (Array.isArray(d.hour)) hours.push(…d.hour);
                     });
                 }
                 const startEpoch =
@@ -317,7 +317,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
     }
 
     async function startWithGeolocation() {
-        setStatus("Locating...");
+        setStatus("Locating…");
         const hasCap = !!(
             window.Capacitor &&
             window.Capacitor.Plugins &&

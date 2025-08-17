@@ -7,7 +7,7 @@ Request format
 
 ```
 https://weather.oreostack.uk/api/
-?lat=...&lon=...
+?lat=…&lon=…
 ```
 
 Response format
@@ -152,7 +152,7 @@ Response format
                             "dni": 0,
                             "gti": 0
                         }
-                        //...Repeated hourly entries; server requests 2 days to ensure >=24h ahead
+                        //…Repeated hourly entries; server requests 2 days to ensure >=24h ahead
                     ]
                 }
             ]
@@ -195,7 +195,7 @@ From a PowerShell prompt in `src/api`:
    npm start
 
 The API will listen on the port from `.env` (default 8302). Query with
-`?lat=...&lon=...` as shown above.
+`?lat=…&lon=…` as shown above.
 
 Notes: the `weather_notes` directory lives at the repository root under
 `weather_notes/` and must contain the category .txt files.

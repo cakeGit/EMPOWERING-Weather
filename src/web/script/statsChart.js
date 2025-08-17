@@ -110,7 +110,7 @@ export function renderStatsChart(next24, payload) {
                     ],
                 },
                 options: {
-                    ...commonOptions,
+                    …commonOptions,
                     scales: {
                         x: { display: true, ticks: { padding: 6 } },
                         y: { ticks: { callback: (v) => v + "°C" } },
@@ -138,7 +138,7 @@ export function renderStatsChart(next24, payload) {
                     ],
                 },
                 options: {
-                    ...commonOptions,
+                    …commonOptions,
                     scales: {
                         x: { display: true, ticks: { padding: 6 } },
                         y: {
@@ -172,7 +172,7 @@ export function renderStatsChart(next24, payload) {
                     ],
                 },
                 options: {
-                    ...commonOptions,
+                    …commonOptions,
                     scales: {
                         x: { display: true, ticks: { padding: 6 } },
                         y: { min: 0, max: 100, ticks: { display: false } },
@@ -203,7 +203,7 @@ export function renderStatsChart(next24, payload) {
                     ],
                 },
                 options: {
-                    ...commonOptions,
+                    …commonOptions,
                     scales: {
                         x: { display: true, ticks: { padding: 6 } },
                         y: { beginAtZero: true },
@@ -234,7 +234,7 @@ export function renderStatsChart(next24, payload) {
                     ],
                 },
                 options: {
-                    ...commonOptions,
+                    …commonOptions,
                     scales: {
                         x: { display: true, ticks: { padding: 6 } },
                         y: {
