@@ -110,7 +110,7 @@ export function renderStatsChart(next24, payload) {
                     ],
                 },
                 options: {
-                    …commonOptions,
+                    ...commonOptions,
                     scales: {
                         x: { display: true, ticks: { padding: 6 } },
                         y: { ticks: { callback: (v) => v + "°C" } },
