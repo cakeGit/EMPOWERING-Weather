@@ -1,0 +1,153 @@
+:root{--bg:#f6f8fb;--card:#fff;--muted:#666;--accent:#1e90ff}
+*{box-sizing:border-box}
+.container{max-width:1000px;margin:10vh auto 0;position:relative;z-index:1}
+
+/* CSS variables make the gradient and bubble colors dynamic so JS can update them based on weather */
+body{font-family:Inter,Segoe UI,Arial,Helvetica,sans-serif;min-height:100vh;margin:0;padding:24px;color:#111;background:var(--bg);
+	/* default gradient stops */
+	--bg-top: #f3f7ff; --bg-mid: #fbfdff; --bg-bottom: #fff6f2;
+	/* default bubble colors (rgba strings) */
+	--bubble1: rgba(255,220,180,0.12); --bubble2: rgba(180,210,255,0.10);
+	background-image:linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 45%, var(--bg-bottom) 100%);
+	background-repeat:no-repeat;background-attachment:fixed;background-size:100% 180%}
+.tag{color:var(--muted);margin-top:0}
+.logo{position:absolute;left:12px;top:12px;font-size:18px;opacity:0.18;margin:0}
+
+/* Subtle bubbly radial blobs that fade/shift behind the UI */
+body::before{
+	content:"";
+	position:fixed;
+	inset:0;
+	pointer-events:none;
+	z-index:0;
+	background-image:
+		radial-gradient(circle at 10% 10%, var(--bubble1) 0%, rgba(0,0,0,0.00) 30%),
+		radial-gradient(circle at 85% 75%, var(--bubble2) 0%, rgba(0,0,0,0.00) 32%);
+	filter:blur(36px) saturate(1.05);
+	opacity:0.95;
+	transform:translateZ(0);
+	animation: bubble-shift 18s ease-in-out infinite;
+}
+
+/* Gradient overlay used for smooth cross-fades between themes. It reads --next-* vars when present and fades in via opacity. */
+body::after{
+	content:"";
+	position:fixed;
+	inset:0;
+	pointer-events:none;
+	z-index:0; /* behind .container which is z-index:1 */
+	background-image:linear-gradient(180deg, var(--next-bg-top, var(--bg-top)) 0%, var(--next-bg-mid, var(--bg-mid)) 45%, var(--next-bg-bottom, var(--bg-bottom)) 100%);
+	background-repeat:no-repeat;
+	background-attachment:fixed;
+	background-size:100% 180%;
+	opacity:0;
+	transition:opacity .9s ease;
+}
+
+/* When body has this class, the ::after overlay fades in showing the next gradient. JS will then commit the values and remove the class. */
+body.grad-fade::after{opacity:1}
+
+@keyframes bubble-shift{
+	0%{transform:translate(-4%, -2%) scale(1);opacity:0.95}
+	25%{transform:translate(6%, 3%) scale(1.02);opacity:0.8}
+	50%{transform:translate(-6%, 4%) scale(1.04);opacity:0.9}
+	75%{transform:translate(4%, -3%) scale(1.01);opacity:0.85}
+	100%{transform:translate(-4%, -2%) scale(1);opacity:0.95}
+}
+.quip.large{font-size:28px;color:#fff;margin:6px 0 2px 0}
+.quip {text-align: center;text-shadow: 0 2px 4px rgba(0,0,0,0.9);}
+.controls{margin:16px 0}
+.inputs{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.inputs label{display:flex;gap:6px;align-items:center}
+.inputs input{padding:6px 8px;border:1px solid #ddd;border-radius:6px}
+button{background:var(--accent);color:#fff;border:0;padding:8px 12px;border-radius:6px;cursor:pointer}
+button:disabled{opacity:.6}
+.status{margin-top:8px;color:var(--muted)}
+.result{margin-top:6px}
+.hidden{display:none}
+.card{background:var(--card);padding:12px;border-radius:8px;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.current{display:flex;align-items:center;gap:12px}
+.temp{font-size:48px;font-weight:600}
+.cond img{width:48px;height:48px}
+.details{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;color:var(--muted)}
+.raw{margin-top:12px}
+.quip{color:var(--accent);margin:6px 0}
+
+/* Debug button (bottom-right) */
+.debug-btn{position:fixed;right:18px;bottom:18px;width:48px;height:48px;border-radius:24px;border:0;background:transparent;color:inherit;font-size:20px;box-shadow:0 6px 18px rgba(0,0,0,.06);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.debug-btn svg{display:block}
+.debug-btn:hover{box-shadow:0 8px 22px rgba(0,0,0,.09)}
+.debug-btn:focus{outline:2px solid rgba(30,144,255,.2);outline-offset:4px}
+
+/* Debug modal */
+.debug-modal{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:flex-end;padding:18px}
+.debug-modal .debug-content{width:min(680px,95%);max-height:80vh;background:var(--card);border-radius:10px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.2);overflow:auto}
+.debug-modal.hidden{display:none}
+.debug-content .close{position:absolute;right:12px;top:8px;border:0;background:transparent;font-size:26px;cursor:pointer}
+.raw-pre{white-space:pre-wrap;background:#0f1724;color:#dbeafe;padding:12px;border-radius:8px;overflow:auto;max-height:60vh}
+footer{margin-top:20px;color:var(--muted)}
+
+/* UV bar styles: compact inline layout */
+.uv{display:flex;flex-direction:row;align-items:center;gap:8px}
+.uv > div:first-child{min-width:60px}
+.uv-track{width:140px;min-width:120px;height:16px;background:#eee;border-radius:8px;overflow:hidden;align-self:center}
+.uv-fill{height:100%;width:0%;background:green;border-radius:8px;transition:width .4s ease,background .2s ease}
+.uv-label{display:inline-block;padding:0 8px;border-radius:8px;background:rgba(0,0,0,0.04);color:var(--muted);min-width:56px;text-align:center;height:16px;line-height:16px;font-size:13px}
+
+/* Rank labels for humidity and wind */
+.rank{margin-left:8px;font-size:13px;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,0.05);color:var(--muted);font-weight:600}
+.uv-value{background:linear-gradient(90deg,#eef6ff,#ffffff);color:#0b5fff}
+.rank.low{background:linear-gradient(90deg,#e6f7ff,#ffffff);color:#0b5fff}
+.rank.ok{background:linear-gradient(90deg,#f0fff4,#ffffff);color:#0b7f3b}
+.rank.high{background:linear-gradient(90deg,#fff7ef,#ffffff);color:#b35b00}
+.rank.very{background:linear-gradient(90deg,#fff0f0,#ffffff);color:#b00000}
+.rank.calm{background:linear-gradient(90deg,#f7fbff,#ffffff);color:#0b5fff}
+.rank.light{background:linear-gradient(90deg,#f7fff7,#ffffff);color:#0b7f3b}
+.rank.breezy{background:linear-gradient(90deg,#fffaf0,#ffffff);color:#b35b00}
+.rank.strong{background:linear-gradient(90deg,#fff4f4,#ffffff);color:#b00000}
+.rank.extreme{background:linear-gradient(90deg,#fbeaea,#ffffff);color:#7e0000}
+
+/* Make numeric metric values bold so they stand out vs descriptions */
+#tempC, #feels, #humidity, #wind, #uvValue, #rainChance { font-weight:700 }
+
+/* Forecast row: small day cards under current weather */
+.forecast-row{display:flex;gap:8px;margin-top:12px;overflow-x:auto;overflow-y:hidden;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable;scroll-snap-type:x mandatory}
+.forecast-card{min-width:110px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 1px 0 rgba(0,0,0,.04);text-align:center;font-size:13px;color:var(--muted);flex:0 0 auto;scroll-snap-align:start}
+.forecast-card .f-date{font-weight:600;color:#111;margin-bottom:6px}
+.forecast-card .f-icon{width:48px;height:48px;object-fit:contain}
+.forecast-card .f-temps{margin-top:6px}
+.forecast-card .f-max{color:var(--accent);font-weight:600;margin-right:6px}
+.forecast-card .f-min{opacity:0.7}
+
+/* Rain percent badge inside forecast cards */
+.forecast-card .f-rain{margin-top:6px;font-size:12px;color:var(--muted);display:flex;justify-content:center;align-items:center;gap:6px}
+.forecast-card .rain-pct{font-weight:800;color:var(--accent)}
+
+/* Location displayed beneath forecast */
+.location-bottom{margin-top:8px;color:var(--muted);font-size:13px}
+.location-bottom{display:flex;gap:10px;align-items:center}
+.location-bottom .sep{opacity:0.5;margin:0 6px}
+.location-bottom {color:var(--muted);font-weight:600}
+
+/* Stat cards row: small cards with a header and large value */
+.stat-cards{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.stat-card{min-width:140px;flex:0 0 auto;padding:10px;text-align:center}
+.stat-card .card-header{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.stat-card .stat-value{font-size:20px;font-weight:800;color:#111}
+.stat-card .stat-value span{font-variant-numeric:tabular-nums}
+
+/* Small sparkline canvas inside stat cards */
+.stat-spark{display:block;width:100%;height:34px;margin-top:8px}
+.stat-card{position:relative}
+.stat-spark{border-radius:6px;background:transparent}
+
+/* New stats cards row for separate charts (temperature, rain, sun, uv, humidity) */
+.stats-cards-row{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.stats-chart-card{background:var(--card);padding:12px 14px;border-radius:8px;box-shadow:0 1px 0 rgba(0,0,0,.04);width:100%;height:250px;display:flex;flex-direction:column;overflow:hidden}
+.stats-chart-card .card-title{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px;flex:0 0 auto}
+.stats-chart-canvas{width:100%;height:100%;flex:1 1 auto;display:block;border-radius:6px;
+	/* start invisible and fade in when JS makes them visible */
+	opacity: 0;
+	transition: opacity .6s ease;
+	will-change: opacity;
+}
