@@ -211,7 +211,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
                 const hours = [];
                 if (Array.isArray(days)) {
                     days.forEach((d) => {
-                        if (Array.isArray(d.hour)) hours.push(…d.hour);
+                        if (Array.isArray(d.hour)) hours.push(...d.hour);
                     });
                 }
                 const startEpoch =
