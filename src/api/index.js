@@ -201,5 +201,5 @@ app.get("/api", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Empowering weather API listening on port ${PORT}`);
+    console.log(`OverCast API listening on port ${PORT}`);
 });

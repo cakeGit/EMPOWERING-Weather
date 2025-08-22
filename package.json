@@ -9,7 +9,8 @@
         "cap:add:android": "cap add android",
         "cap:open:android": "cap open android",
         "android": "npm run cap:sync && npm run cap:open:android",
-        "dev:api": "npm --prefix src/api start"
+        "dev:api": "npm --prefix src/api start",
+        "sync:web-assets": "node scripts/copy-web-to-assets.js"
     },
     "dependencies": {
         "@capacitor/core": "^7.4.2",

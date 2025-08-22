@@ -1,4 +1,4 @@
-# EMPOWERING Weather - Mobile (Capacitor)
+# OverCast - Mobile (Capacitor)
 
 This adds a Capacitor wrapper around the static web app in `src/web` so you can
 run it on your phone.

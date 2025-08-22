@@ -1,4 +1,4 @@
-# Empowering weather API
+# OverCast API
 
 Rest API served on port 8302 Cloudflared tunnel points the traffic going to
 "weather.oreostack.uk/api" to localhost:8302

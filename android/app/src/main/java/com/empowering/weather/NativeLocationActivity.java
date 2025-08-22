@@ -77,7 +77,13 @@ public class NativeLocationActivity extends Activity {
     private void saveAndFinish(double lat, double lon) {
         try {
             SharedPreferences prefs = getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
-            prefs.edit().putFloat("widget_lat", (float)lat).putFloat("widget_lon", (float)lon).putLong("widget_loc_time", System.currentTimeMillis()).apply();
+        boolean hasLocation = !(lat == 0d && lon == 0d);
+        prefs.edit()
+            .putFloat("widget_lat", (float) lat)
+            .putFloat("widget_lon", (float) lon)
+            .putLong("widget_loc_time", System.currentTimeMillis())
+            .putBoolean("widget_has_location", hasLocation)
+            .apply();
         } catch (Throwable ignored) {}
         finish();
     }

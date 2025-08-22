@@ -6,7 +6,7 @@ const serverUrl = process.env.CAP_SERVER_URL;
 
 const config: CapacitorConfig = {
   appId: 'com.empowering.weather',
-  appName: 'EMPOWERING Weather',
+  appName: 'OverCast',
   webDir: 'src/web',
   bundledWebRuntime: false,
   server: serverUrl

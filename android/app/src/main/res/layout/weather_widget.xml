@@ -7,62 +7,134 @@
     android:padding="12dp"
     android:background="@drawable/widget_bg">
 
+    <!-- Stats row: precip, humidity, uv. Each has a rounded background ImageView set at update time -->
+
+    <TextView
+        android:id="@+id/txtTemp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="--°C"
+        android:textAlignment="center"
+        android:textColor="#111111"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
     <TextView
         android:id="@+id/txtQuip"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="OverCast"
-        android:textStyle="bold"
-    android:textSize="14sp"
-    android:textColor="#222222"
+        android:ellipsize="end"
         android:maxLines="3"
-        android:ellipsize="end" />
-
-    <TextView
-        android:id="@+id/txtTemp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="--°C"
-    android:textSize="24sp"
-    android:textColor="#111111"
-        android:textStyle="bold"
-        android:layout_marginTop="6dp" />
-
-    <TextView
-        android:id="@+id/txtLocation"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-    android:text="Prec: -- | Hum: -- | UV: --"
-    android:textSize="12sp"
-    android:textColor="#444444"
-        android:layout_marginTop="2dp"
-        android:maxLines="1"
-        android:ellipsize="end" />
+        android:text="OverCast"
+        android:textAlignment="center"
+        android:textColor="#222222"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp">
 
-        <TextView
-            android:id="@+id/txtStatus"
+        <FrameLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="OverCast Weather"
-            android:textColor="#555555"
-            android:textSize="11sp" />
-
-        <TextView
-            android:id="@+id/txtDataAge"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="#777777"
-            android:textSize="10sp"
-            android:visibility="gone" />
+            android:minHeight="40dp"
+            android:padding="3dp">
+
+            <ImageView
+                android:id="@+id/bg_precip"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="" />
+
+            <TextView
+                android:id="@+id/txtPrec"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_gravity="center_vertical"
+                android:text="Prec: --"
+                android:textSize="12sp"
+                android:textColor="#111111"
+                android:textStyle="bold"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:padding="3dp">
+            <ImageView
+                android:id="@+id/bg_humidity"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="" />
+
+            <TextView
+                android:id="@+id/txtHum"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_gravity="center_vertical"
+                android:text="Hum: --"
+                android:textSize="12sp"
+                android:textColor="#111111"
+                android:textStyle="bold"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:padding="3dp">
+            <ImageView
+                android:id="@+id/bg_uv"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="" />
+
+            <TextView
+                android:id="@+id/txtUv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_gravity="center_vertical"
+                android:text="UV: --"
+                android:textSize="12sp"
+                android:textColor="#111111"
+                android:textStyle="bold"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+        </FrameLayout>
 
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/txtStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+    android:text="OverCast Weather"
+    android:textColor="#666666"
+    android:textSize="11sp"
+    android:ellipsize="end"
+    android:maxLines="2"
+    android:textStyle="italic" />
 
 </LinearLayout>

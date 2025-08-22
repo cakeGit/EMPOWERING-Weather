@@ -45,6 +45,8 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
     // Location APIs for the native widget activity
     implementation "com.google.android.gms:play-services-location:21.0.1"
+    // WorkManager for reliable boot scheduling
+    implementation "androidx.work:work-runtime:2.8.1"
 }
 
 apply from: 'capacitor.build.gradle'

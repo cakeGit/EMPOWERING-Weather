@@ -53,6 +53,18 @@
                 android:resource="@xml/weather_widget_info" />
         </receiver>
 
+        <!-- Location delivery and boot handling -->
+        <receiver android:name=".LocationBroadcastReceiver" android:exported="true" />
+
+        <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+    <service android:name=".LocationUpdatesService" android:exported="false" android:foregroundServiceType="location" />
+
     </application>
 
     <!-- Permissions -->
@@ -61,4 +73,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Background location (needed on Android 10+) -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- To restart work after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Required to call startForeground on modern Android versions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 </manifest>

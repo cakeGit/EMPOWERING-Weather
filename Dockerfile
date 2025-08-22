@@ -1,4 +1,4 @@
-# Build image for Empowering Weather API
+# Build image for OverCast API
 FROM node:18-alpine
 
 WORKDIR /app
