@@ -1,8 +1,8 @@
 package com.empowering.weather;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
+import android.content.pm.PackageManager;
+import android.Manifest;
+import androidx.core.content.ContextCompat;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -20,7 +20,7 @@ import com.google.android.gms.location.LocationServices;
  */
 public class LocationUpdatesService extends Service {
     private static final String TAG = "LocUpdatesService";
-    private static final String CHANNEL_ID = "empowering_weather_loc";
+    // no notification channel: service runs without startForeground
     private boolean mForegroundStarted = false;
 
     @Override
@@ -31,22 +31,20 @@ public class LocationUpdatesService extends Service {
             android.content.SharedPreferences prefs = getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
             prefs.edit().putBoolean("location_service_running", true).putLong("location_service_started_at", System.currentTimeMillis()).apply();
         } catch (Throwable ignored) {}
-        createNotificationChannel();
-        Notification n = new Notification.Builder(this, CHANNEL_ID)
-                .setContentTitle("Weather: location updates")
-                .setContentText("Keeping your weather widget updated")
-                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-                .build();
-        try {
-            startForeground(1337, n);
-            mForegroundStarted = true;
-        } catch (Throwable t) {
-            // On some devices/States Android may refuse startForeground; don't crash the app.
-            Log.w(TAG, "startForeground not allowed right now, continuing without foreground", t);
-            mForegroundStarted = false;
-        }
+    // Do not create a notification or call startForeground here.
+    // On modern Android starting a location-type foreground service requires
+    // special permissions (android.permission.FOREGROUND_SERVICE_LOCATION).
+    // Instead, only request location updates when runtime location permission
+    // is available to avoid SecurityException.
 
         try {
+            // Check runtime location permission before requesting updates
+            boolean hasLocationPerm = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                    || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+            if (!hasLocationPerm) {
+                Log.w(TAG, "missing location permission; not requesting updates");
+                return;
+            }
             LocationRequest req = LocationRequest.create();
             req.setInterval(30_000);
             req.setFastestInterval(10_000);
@@ -95,12 +93,4 @@ public class LocationUpdatesService extends Service {
         return null;
     }
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm == null) return;
-            NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Location updates", NotificationManager.IMPORTANCE_LOW);
-            nm.createNotificationChannel(ch);
-        }
-    }
 }

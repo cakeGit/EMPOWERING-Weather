@@ -10,8 +10,12 @@ require("dotenv").config({
 const app = express();
 const PORT = process.env.PORT || 8302;
 
-// Permissive CORS middleware (allows all origins). Useful for development or
-// when the API must be accessible from any origin. Remove or tighten in prod.
+// CORS middleware that supports credentials (cookies) from cross-origin clients.
+// When credentials are allowed, Access-Control-Allow-Origin must be the exact
+// Origin (not '*'). Optionally restrict allowed origins via ALLOWED_ORIGINS
+// environment variable (comma-separated list).
+// Fully permissive CORS middleware: allow any origin. Note: with '*' origin,
+// credentialed (cookie) cross-origin requests are not supported by browsers.
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader(
@@ -22,10 +26,7 @@ app.use((req, res, next) => {
         "Access-Control-Allow-Headers",
         "Origin, X-Requested-With, Content-Type, Accept, Authorization"
     );
-    // Allow credentials header if clients need it (note: Access-Control-Allow-Origin can't be * with credentials)
-    res.setHeader("Access-Control-Allow-Credentials", "true");
     if (req.method === "OPTIONS") {
-        // Immediately respond to preflight requests
         return res.sendStatus(204);
     }
     next();

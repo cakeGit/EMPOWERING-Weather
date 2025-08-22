@@ -26,10 +26,16 @@ public class StartLocationWorker extends Worker {
         SharedPreferences prefs = ctx.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
         try {
             Intent svc = new Intent(ctx, LocationUpdatesService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ctx.startForegroundService(svc);
-            } else {
+            try {
+                // Prefer a normal startService call so the system doesn't expect a
+                // subsequent startForeground() call. If this fails (background-start
+                // restrictions), we'll record the error and retry later.
                 ctx.startService(svc);
+            } catch (Throwable startErr) {
+                String msg = startErr.getClass().getSimpleName() + ": " + startErr.getMessage();
+                prefs.edit().putString("location_service_start_status", "error: " + msg).putLong("location_service_start_time", System.currentTimeMillis()).apply();
+                Log.w(TAG, "failed to start service", startErr);
+                return Result.retry();
             }
             prefs.edit().putString("location_service_start_status", "ok").putLong("location_service_start_time", System.currentTimeMillis()).apply();
             Log.i(TAG, "started LocationUpdatesService via WorkManager");
