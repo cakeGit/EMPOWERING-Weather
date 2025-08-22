@@ -13,6 +13,7 @@ import android.location.LocationManager;
 import android.content.pm.PackageManager;
 import androidx.core.content.ContextCompat;
 import android.os.Build;
+import android.view.View;
 import android.widget.RemoteViews;
 
 import org.json.JSONObject;
@@ -28,7 +29,19 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId, null);
+            // First, try to display existing data with current age
+            long storedTimestamp = getStoredDataTimestamp(context);
+            if (storedTimestamp > 0) {
+                // We have previous data, show it with current age while we fetch new data
+                WidgetData cachedData = createCachedData(context, storedTimestamp);
+                if (cachedData != null) {
+                    updateAppWidget(context, appWidgetManager, appWidgetId, cachedData);
+                }
+            } else {
+                updateAppWidget(context, appWidgetManager, appWidgetId, null);
+            }
+            
+            // Then fetch and update with fresh data
             fetchAndUpdate(context, appWidgetManager, appWidgetId);
         }
     }
@@ -37,6 +50,8 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
         if (ACTION_REFRESH.equals(intent.getAction())) {
+            // Clear location cache when user taps to refresh
+            clearLocationCache(context);
             AppWidgetManager mgr = AppWidgetManager.getInstance(context);
             int[] ids = mgr.getAppWidgetIds(new ComponentName(context, WeatherWidgetProvider.class));
             for (int id : ids) {
@@ -52,11 +67,21 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.txtTemp, "--°C");
             views.setTextViewText(R.id.txtLocation, "Prec: -- | Hum: -- | UV: --");
             views.setTextViewText(R.id.txtStatus, "Updating…");
+            views.setViewVisibility(R.id.txtDataAge, View.GONE);
         } else {
             views.setTextViewText(R.id.txtQuip, data.quip);
             views.setTextViewText(R.id.txtTemp, data.temp);
             views.setTextViewText(R.id.txtLocation, data.location);
             views.setTextViewText(R.id.txtStatus, data.status);
+            
+            // Show data age
+            String ageText = formatDataAge(data.timestamp);
+            if (!ageText.isEmpty()) {
+                views.setTextViewText(R.id.txtDataAge, ageText);
+                views.setViewVisibility(R.id.txtDataAge, View.VISIBLE);
+            } else {
+                views.setViewVisibility(R.id.txtDataAge, View.GONE);
+            }
         }
 
         Intent refreshIntent = new Intent(context, WeatherWidgetProvider.class);
@@ -113,6 +138,10 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                     String temp = cur != null ? (cur.opt("temp_c") + "°C") : "--°C";
                     String details = buildDetailsFromCurrent(cur);
                     WidgetData data = new WidgetData(quip.isEmpty() ? "Empowering Weather" : quip, temp, details, "Tap to refresh");
+                    
+                    // Store weather data and timestamp for age tracking
+                    storeWeatherData(context, data);
+                    
                     updateAppWidget(context, appWidgetManager, appWidgetId, data);
                 } else {
                     String st = hasLocation ? ("Error " + code) : "Open app to set location";
@@ -138,11 +167,13 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.txtTemp, "--°C");
             views.setTextViewText(R.id.txtLocation, "Prec: -- | Hum: -- | UV: --");
             views.setTextViewText(R.id.txtStatus, "Open app to set location");
+            views.setViewVisibility(R.id.txtDataAge, View.GONE);
         } else {
             views.setTextViewText(R.id.txtQuip, data.quip);
             views.setTextViewText(R.id.txtTemp, data.temp);
             views.setTextViewText(R.id.txtLocation, data.location);
             views.setTextViewText(R.id.txtStatus, data.status);
+            views.setViewVisibility(R.id.txtDataAge, View.GONE);
         }
     // Launch a small native activity that requests location permission and fetches a location
     Intent openIntent = new Intent(context, NativeLocationActivity.class);
@@ -244,16 +275,89 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         return null;
     }
 
+    private static void storeDataTimestamp(Context context, long timestamp) {
+        SharedPreferences prefs = context.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putLong("widget_data_timestamp", timestamp);
+        editor.apply();
+    }
+
+    private static long getStoredDataTimestamp(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
+        return prefs.getLong("widget_data_timestamp", 0);
+    }
+
+    private static WidgetData createCachedData(Context context, long timestamp) {
+        SharedPreferences prefs = context.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
+        String quip = prefs.getString("widget_quip", "");
+        String temp = prefs.getString("widget_temp", "--°C");
+        String location = prefs.getString("widget_location", "Prec: -- | Hum: -- | UV: --");
+        String status = prefs.getString("widget_status", "Tap to refresh");
+        
+        if (quip.isEmpty()) quip = "Empowering Weather";
+        
+        WidgetData data = new WidgetData(quip, temp, location, status);
+        data.timestamp = timestamp; // Use stored timestamp for age calculation
+        return data;
+    }
+
+    private static void storeWeatherData(Context context, WidgetData data) {
+        SharedPreferences prefs = context.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putLong("widget_data_timestamp", data.timestamp);
+        editor.putString("widget_quip", data.quip);
+        editor.putString("widget_temp", data.temp);
+        editor.putString("widget_location", data.location);
+        editor.putString("widget_status", data.status);
+        editor.apply();
+    }
+
     private static class WidgetData {
         String quip;
         String temp;
         String location;
         String status;
+        long timestamp;
         WidgetData(String quip, String temp, String location, String status) {
             this.quip = quip;
             this.temp = temp;
             this.location = location;
             this.status = status;
+            this.timestamp = System.currentTimeMillis();
+        }
+    }
+
+    private static void clearLocationCache(Context context) {
+        // Clear widget location cache from SharedPreferences
+        SharedPreferences prefs = context.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove("widget_loc_time");
+        editor.remove("widget_lat");
+        editor.remove("widget_lon");
+        editor.remove("widget_data_timestamp");
+        editor.remove("widget_quip");
+        editor.remove("widget_temp");
+        editor.remove("widget_location");
+        editor.remove("widget_status");
+        editor.apply();
+    }
+
+    private static String formatDataAge(long timestampMs) {
+        if (timestampMs <= 0) return "";
+        long ageMs = System.currentTimeMillis() - timestampMs;
+        long ageSeconds = ageMs / 1000;
+        
+        if (ageSeconds < 60) {
+            return ageSeconds + "s ago";
+        } else if (ageSeconds < 3600) {
+            long minutes = ageSeconds / 60;
+            return minutes + "m ago";
+        } else if (ageSeconds < 86400) {
+            long hours = ageSeconds / 3600;
+            return hours + "h ago";
+        } else {
+            long days = ageSeconds / 86400;
+            return days + "d ago";
         }
     }
 }
