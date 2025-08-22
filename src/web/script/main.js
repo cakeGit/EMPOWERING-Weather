@@ -4,6 +4,11 @@ import {
     humanizeAge,
     domSnapshot,
     installGlobalErrorHandlers,
+    getCachedLocation,
+    setCachedLocation,
+    locationsDiffer,
+    showCacheNote,
+    hideCacheNote,
 } from "./utils.js";
 import { applyWeatherTheme } from "./theme.js";
 import { renderUV, getUVRank } from "./uv.js";
@@ -82,9 +87,9 @@ import { installDebugModalHandlers } from "./debugModal.js";
                 "Network error, couldn't fetch weather info: " +
                     (e && e.message ? e.message : String(e))
             );
-            //Set debug data to the response
+            //Set debug data to the error
             const rawEl = document.getElementById("raw");
-            if (rawEl) rawEl.textContent = JSON.stringify(res, null, 2);
+            if (rawEl) rawEl.textContent = JSON.stringify({error: e.message, stack: e.stack}, null, 2);
             try {
                 result && result.classList.add("hidden");
             } catch (err) {
@@ -316,6 +321,119 @@ import { installDebugModalHandlers } from "./debugModal.js";
         }
     }
 
+    async function startWithCachedLocation() {
+        // Check for cached location first
+        const cachedLocation = getCachedLocation();
+        let usedCache = false;
+        
+        if (cachedLocation) {
+            setStatus("Using cached location, fetching weather...");
+            showCacheNote();
+            fetchWeather(cachedLocation.latitude, cachedLocation.longitude);
+            usedCache = true;
+        }
+
+        // Get current location in background
+        getCurrentLocationInBackground(cachedLocation, usedCache);
+    }
+
+    async function getCurrentLocationInBackground(cachedLocation, usedCache) {
+        const hasCap = !!(
+            window.Capacitor &&
+            window.Capacitor.Plugins &&
+            (window.Capacitor.Plugins.Geolocation ||
+                window.Capacitor.isNativePlatform?.())
+        );
+
+        const persistLatLon = async (lat, lon) => {
+            // Best-effort: Capacitor Preferences when available, else localStorage
+            try {
+                if (
+                    window.Capacitor &&
+                    window.Capacitor.Plugins &&
+                    window.Capacitor.Plugins.Preferences
+                ) {
+                    const { Preferences } = window.Capacitor.Plugins;
+                    await Preferences.set({ key: "lat", value: String(lat) });
+                    await Preferences.set({ key: "lon", value: String(lon) });
+                } else if (window.localStorage) {
+                    localStorage.setItem("lat", String(lat));
+                    localStorage.setItem("lon", String(lon));
+                }
+            } catch (e) {
+                console.warn("Failed to persist lat/lon", e);
+            }
+        };
+
+        try {
+            let currentLocation = null;
+
+            if (hasCap && window.Capacitor.Plugins.Geolocation) {
+                const { Geolocation } = window.Capacitor.Plugins;
+                try {
+                    // Request permissions on native if needed
+                    if (Geolocation.requestPermissions) {
+                        await Geolocation.requestPermissions();
+                    }
+                } catch (_) {}
+                const pos = await Geolocation.getCurrentPosition({
+                    enableHighAccuracy: false,
+                    timeout: 10000,
+                });
+                const { latitude, longitude } = pos.coords || pos || {};
+                if (latitude != null && longitude != null) {
+                    currentLocation = { latitude, longitude };
+                }
+            } else if (navigator.geolocation) {
+                const pos = await new Promise((resolve, reject) =>
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: false,
+                        timeout: 10000,
+                    })
+                );
+                if (pos && pos.coords) {
+                    currentLocation = {
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                    };
+                }
+            }
+
+            if (currentLocation) {
+                retryBtn && retryBtn.classList.add("hidden");
+                await persistLatLon(currentLocation.latitude, currentLocation.longitude);
+
+                // Compare with cached location if we had one
+                if (cachedLocation && usedCache) {
+                    if (locationsDiffer(cachedLocation, currentLocation)) {
+                        // Location changed significantly, update cache and refresh weather
+                        setCachedLocation(currentLocation.latitude, currentLocation.longitude);
+                        fetchWeather(currentLocation.latitude, currentLocation.longitude);
+                    }
+                    // Always hide the cache note once we've checked current location
+                    hideCacheNote();
+                } else if (!usedCache) {
+                    // No cached location was used, just fetch with current location
+                    setCachedLocation(currentLocation.latitude, currentLocation.longitude);
+                    fetchWeather(currentLocation.latitude, currentLocation.longitude);
+                }
+            } else if (!usedCache) {
+                // No current location and no cached location used
+                setStatus("Could not determine your location.");
+                retryBtn && retryBtn.classList.remove("hidden");
+            }
+        } catch (err) {
+            console.warn("Error getting current location", err);
+            if (!usedCache) {
+                setStatus("Location error: " + (err.message || "Unable to get location"));
+                retryBtn && retryBtn.classList.remove("hidden");
+            } else {
+                // We used cache successfully, just hide the note
+                hideCacheNote();
+            }
+        }
+    }
+
     async function startWithGeolocation() {
         setStatus("Locating…");
         const hasCap = !!(
@@ -394,7 +512,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
         );
     }
 
-    startWithGeolocation();
+    startWithCachedLocation();
 
     // Periodic background location update (every THIRTY_SECONDS, best-effort)
     let _periodicLocTimer = null;
@@ -473,7 +591,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
     if (retryBtn) {
         retryBtn.addEventListener("click", () => {
             retryBtn.classList.add("hidden");
-            startWithGeolocation();
+            startWithCachedLocation();
         });
     }
 })();
