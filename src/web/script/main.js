@@ -324,26 +324,18 @@ import { installDebugModalHandlers } from "./debugModal.js";
             (window.Capacitor.Plugins.Geolocation ||
                 window.Capacitor.isNativePlatform?.())
         );
-
-        const persistLatLon = async (lat, lon) => {
-            // Best-effort: Capacitor Preferences when available, else localStorage
+        // use centralized location store
+        const { saveLocation, getStoredLocation } = await (async () => {
             try {
-                if (
-                    window.Capacitor &&
-                    window.Capacitor.Plugins &&
-                    window.Capacitor.Plugins.Preferences
-                ) {
-                    const { Preferences } = window.Capacitor.Plugins;
-                    await Preferences.set({ key: "lat", value: String(lat) });
-                    await Preferences.set({ key: "lon", value: String(lon) });
-                } else if (window.localStorage) {
-                    localStorage.setItem("lat", String(lat));
-                    localStorage.setItem("lon", String(lon));
-                }
+                return await import("./locationStore.js");
             } catch (e) {
-                console.warn("Failed to persist lat/lon", e);
+                console.warn("Failed to load locationStore", e);
+                return {
+                    saveLocation: async () => {},
+                    getStoredLocation: async () => null,
+                };
             }
-        };
+        })();
 
         try {
             if (hasCap && window.Capacitor.Plugins.Geolocation) {
@@ -361,7 +353,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
                 const { latitude, longitude } = pos.coords || pos || {};
                 if (latitude != null && longitude != null) {
                     retryBtn && retryBtn.classList.add("hidden");
-                    await persistLatLon(latitude, longitude);
+                    await saveLocation(latitude, longitude, "geo_cap");
                     fetchWeather(latitude, longitude);
                     return;
                 }
@@ -383,7 +375,7 @@ import { installDebugModalHandlers } from "./debugModal.js";
             async (pos) => {
                 const { latitude, longitude } = pos.coords;
                 retryBtn && retryBtn.classList.add("hidden");
-                await persistLatLon(latitude, longitude);
+                await saveLocation(latitude, longitude, "geo_browser");
                 fetchWeather(latitude, longitude);
             },
             (err) => {
@@ -440,25 +432,13 @@ import { installDebugModalHandlers } from "./debugModal.js";
                 }
                 if (lat != null && lon != null) {
                     try {
-                        if (
-                            window.Capacitor &&
-                            window.Capacitor.Plugins &&
-                            window.Capacitor.Plugins.Preferences
-                        ) {
-                            const { Preferences } = window.Capacitor.Plugins;
-                            await Preferences.set({
-                                key: "lat",
-                                value: String(lat),
-                            });
-                            await Preferences.set({
-                                key: "lon",
-                                value: String(lon),
-                            });
-                        } else if (window.localStorage) {
-                            localStorage.setItem("lat", String(lat));
-                            localStorage.setItem("lon", String(lon));
-                        }
-                    } catch (e) {}
+                        // prefer centralized save
+                        const mod = await import("./locationStore.js");
+                        if (mod && mod.saveLocation)
+                            await mod.saveLocation(lat, lon, "periodic");
+                    } catch (e) {
+                        /* ignore save errors */
+                    }
                     try {
                         fetchWeather(lat, lon);
                     } catch (e) {}

@@ -11,13 +11,24 @@ const app = express();
 const PORT = process.env.PORT || 8302;
 
 // CORS middleware that supports credentials (cookies) from cross-origin clients.
-// When credentials are allowed, Access-Control-Allow-Origin must be the exact
-// Origin (not '*'). Optionally restrict allowed origins via ALLOWED_ORIGINS
-// environment variable (comma-separated list).
-// Fully permissive CORS middleware: allow any origin. Note: with '*' origin,
-// credentialed (cookie) cross-origin requests are not supported by browsers.
+// Mirror the incoming Origin header when present so browsers will accept cookies
+// when the client uses credentials: 'include'. Also set Vary: Origin for caches.
 app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    const origin = req.headers.origin;
+
+    if (origin) {
+        // Echo the requesting origin back. This is required for credentialed requests
+        // (cookies) to succeed across origins in browsers.
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        // Tell caches that the response varies by Origin
+        res.setHeader("Vary", "Origin");
+        // Allow cookies/credentials from the client
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+    } else {
+        // No Origin header (e.g., same-origin or curl), allow everything
+        res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+
     res.setHeader(
         "Access-Control-Allow-Methods",
         "GET,POST,PUT,PATCH,DELETE,OPTIONS"
@@ -26,6 +37,7 @@ app.use((req, res, next) => {
         "Access-Control-Allow-Headers",
         "Origin, X-Requested-With, Content-Type, Accept, Authorization"
     );
+
     if (req.method === "OPTIONS") {
         return res.sendStatus(204);
     }
