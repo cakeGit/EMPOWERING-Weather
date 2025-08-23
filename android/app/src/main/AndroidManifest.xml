@@ -47,6 +47,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.empowering.weather.REFRESH" />
+                <action android:name="com.empowering.weather.UPDATE_TIME" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -81,4 +82,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Required when starting a location-type foreground service on newer Android -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Required for scheduling alarms -->
+    <uses-permission android:name="android.permission.SET_ALARM" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>

@@ -14,6 +14,7 @@ import android.content.pm.PackageManager;
 import androidx.core.content.ContextCompat;
 import android.os.Build;
 import android.widget.RemoteViews;
+import android.app.AlarmManager;
 
 import org.json.JSONObject;
 
@@ -26,6 +27,7 @@ import java.util.concurrent.Executors;
 
 public class WeatherWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_REFRESH = "com.empowering.weather.REFRESH";
+    public static final String ACTION_UPDATE_TIME = "com.empowering.weather.UPDATE_TIME";
     // Single-threaded executor to serialize widget fetch work and avoid spawning many threads
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();
 
@@ -35,6 +37,8 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             updateAppWidget(context, appWidgetManager, appWidgetId, null);
             fetchAndUpdate(context, appWidgetManager, appWidgetId);
         }
+        // Schedule periodic time updates
+        scheduleTimeUpdates(context);
     }
 
     @Override
@@ -46,7 +50,52 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
             for (int id : ids) {
                 fetchAndUpdate(context, mgr, id);
             }
+        } else if (ACTION_UPDATE_TIME.equals(intent.getAction())) {
+            // Update only the timestamp display without fetching new data
+            AppWidgetManager mgr = AppWidgetManager.getInstance(context);
+            int[] ids = mgr.getAppWidgetIds(new ComponentName(context, WeatherWidgetProvider.class));
+            for (int id : ids) {
+                updateTimestampOnly(context, mgr, id);
+            }
+            // Reschedule the next time update
+            scheduleTimeUpdates(context);
         }
+    }
+
+    @Override
+    public void onDeleted(Context context, int[] appWidgetIds) {
+        super.onDeleted(context, appWidgetIds);
+        // If no more widgets exist, cancel time updates
+        AppWidgetManager mgr = AppWidgetManager.getInstance(context);
+        int[] allIds = mgr.getAppWidgetIds(new ComponentName(context, WeatherWidgetProvider.class));
+        if (allIds.length == 0) {
+            cancelTimeUpdates(context);
+        }
+    }
+
+    @Override
+    public void onDisabled(Context context) {
+        super.onDisabled(context);
+        // All widgets removed, cancel time updates
+        cancelTimeUpdates(context);
+    }
+
+    // Cancel scheduled time updates
+    private static void cancelTimeUpdates(Context context) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        Intent intent = new Intent(context, WeatherWidgetProvider.class);
+        intent.setAction(ACTION_UPDATE_TIME);
+        
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            context, 
+            1001,
+            intent,
+            Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_IMMUTABLE : 0
+        );
+
+        alarmManager.cancel(pendingIntent);
     }
 
     private static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId, WidgetData data) {
@@ -126,6 +175,76 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
+    // Update only the timestamp in the status text without fetching new data
+    private static void updateTimestampOnly(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        SharedPreferences prefs = context.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
+        
+        // Get last cached weather data
+        String cachedQuip = prefs.getString("widget_cached_quip", "OverCast");
+        String cachedTemp = prefs.getString("widget_cached_temp", "--°C");
+        String cachedLocation = prefs.getString("widget_cached_location", "Prec: -- | Hum: -- | UV: --");
+        
+        // Calculate current status with updated timestamp
+        long fetchTs = prefs.getLong("widget_last_fetch_time", 0L);
+        long savedLocationTs = prefs.getLong("widget_loc_time", 0L);
+        
+        String status;
+        if (fetchTs <= 0) {
+            status = "Open app to grant location";
+        } else {
+            String fetchedLabel = lastFetchedLabel(fetchTs);
+            boolean usingCached = savedLocationTs > 0 && (System.currentTimeMillis() - savedLocationTs > 2L * 60L * 1000L);
+            
+            if (usingCached) {
+                String age = formatAge(savedLocationTs);
+                status = "Using cached location " + age + " — " + fetchedLabel + " — Tap to refresh";
+            } else {
+                status = fetchedLabel + " — Tap to refresh";
+            }
+        }
+        
+        WidgetData data = new WidgetData(cachedQuip, cachedTemp, cachedLocation, status);
+        updateAppWidget(context, appWidgetManager, appWidgetId, data);
+    }
+
+    // Schedule periodic updates for timestamp display only
+    private static void scheduleTimeUpdates(Context context) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        Intent intent = new Intent(context, WeatherWidgetProvider.class);
+        intent.setAction(ACTION_UPDATE_TIME);
+        
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            context, 
+            1001,  // Use different request code from refresh
+            intent,
+            Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_IMMUTABLE : 0
+        );
+
+        // Cancel any existing alarm
+        alarmManager.cancel(pendingIntent);
+        
+        // Schedule an exact one-shot alarm ~10 seconds from now. We reschedule after each run
+        long intervalMillis = 10 * 1000L; // 10 seconds
+        long triggerAtMillis = System.currentTimeMillis() + intervalMillis;
+
+        // Cancel any existing scheduled alarm (already done above) then set an exact one-shot
+        try {
+            if (Build.VERSION.SDK_INT >= 23) {
+                // Use allowWhileIdle on newer devices to improve delivery while idle
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            } else if (Build.VERSION.SDK_INT >= 19) {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            }
+        } catch (Exception e) {
+            // Fallback to inexact scheduling if exact fails
+            alarmManager.set(AlarmManager.RTC, triggerAtMillis, pendingIntent);
+        }
+    }
+
     private static void fetchAndUpdate(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         EXEC.submit(() -> {
             try {
@@ -190,10 +309,19 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
                     String quip = root.optString("weather_quip", "");
                     String temp = cur != null ? (cur.opt("temp_c") + "°C") : "--°C";
                     String details = buildDetailsFromCurrent(cur);
+                    
                     // record fetch time so the widget can show when data was last fetched
                     SharedPreferences prefs = context.getSharedPreferences("weather_widget_prefs", Context.MODE_PRIVATE);
                     long fetchTs = System.currentTimeMillis();
-                    try { prefs.edit().putLong("widget_last_fetch_time", fetchTs).apply(); } catch (Throwable ignored) {}
+                    SharedPreferences.Editor editor = prefs.edit();
+                    try { 
+                        editor.putLong("widget_last_fetch_time", fetchTs);
+                        // Cache the weather data for timestamp-only updates
+                        editor.putString("widget_cached_quip", quip.isEmpty() ? "OverCast" : quip);
+                        editor.putString("widget_cached_temp", temp);
+                        editor.putString("widget_cached_location", details);
+                        editor.apply(); 
+                    } catch (Throwable ignored) {}
 
                     String status;
                     String fetchedLabel = lastFetchedLabel(fetchTs);
@@ -527,7 +655,8 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
         try {
             if (ts <= 0) return "";
             long age = System.currentTimeMillis() - ts;
-            if (age < 1000L) return "(now)";
+            // Treat anything under 9 seconds as "now" per request
+            if (age < 9000L) return "(now)";
             long secs = age / 1000L;
             if (secs < 60L) return "(" + secs + "s)";
             long mins = secs / 60L;
